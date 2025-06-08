@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Controle de Fiado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .modal { transition: opacity 0.3s ease, visibility 0.3s ease; }
+        .modal-content { transition: transform 0.3s ease; }
+        .modal.hidden { visibility: hidden; }
+        .table-header-sticky { position: sticky; top: 0; }
+        .custom-alert {
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-6 lg:p-8">
+        <!-- Cabeçalho -->
+        <header class="mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Controle de Clientes (Fiado)</h1>
+            <p class="text-gray-600 mt-2">Gerencie os cadastros, compras e pagamentos dos seus clientes de forma simples.</p>
+        </header>
+
+        <!-- Métricas Principais -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm flex items-center">
+                <div class="bg-blue-100 p-4 rounded-full mr-4">
+                    <i class="fas fa-users text-2xl text-blue-600"></i>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Total de Clientes</p>
+                    <p id="total-customers" class="text-2xl font-bold">0</p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm flex items-center">
+                 <div class="bg-red-100 p-4 rounded-full mr-4">
+                    <i class="fas fa-hand-holding-dollar text-2xl text-red-600"></i>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Total a Receber</p>
+                    <p id="total-due" class="text-2xl font-bold">R$ 0,00</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botões de Ação e Tabs -->
+        <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex space-x-2 mb-4 md:mb-0">
+                 <button id="show-customers-tab" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold focus:outline-none">
+                    <i class="fas fa-users mr-2"></i>Clientes
+                </button>
+                 <button id="show-transactions-tab" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold focus:outline-none">
+                    <i class="fas fa-receipt mr-2"></i>Lançamentos
+                </button>
+            </div>
+            <div class="flex space-x-2">
+                 <button id="add-customer-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-user-plus mr-2"></i>Novo Cliente
+                </button>
+                 <button id="add-transaction-btn" class="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors">
+                    <i class="fas fa-plus-circle mr-2"></i>Novo Lançamento
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabela de Clientes -->
+        <div id="customers-section" class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="p-6">
+                <h2 class="text-xl font-bold">Lista de Clientes</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-max text-left">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="p-4 text-sm font-semibold text-gray-600 table-header-sticky">Nome</th>
+                            <th class="p-4 text-sm font-semibold text-gray-600 table-header-sticky">Telefone</th>
+                            <th class="p-4 text-sm font-semibold text-gray-600 table-header-sticky">Limite</th>
+                            <th class="p-4 text-sm font-semibold text-gray-600 table-header-sticky">Saldo Devedor</th>
+                            <th class="p-4 text-sm font-semibold text-gray-600 table-header-sticky">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customers-table-body">
+                        <!-- Linhas de clientes serão inseridas aqui via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tabela de Lançamentos -->
+        <div id="transactions-section" class="hidden bg-white rounded-xl shadow-sm overflow-hidden">
+             <div class="p-6">
+                <h2 class="text-xl font-bold">Histórico de Lançamentos</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-max text-left">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="p-4 text-sm font-semibold text-gray-600 table-header-sticky">Data</th>
+                            <th class="p-4 text-sm font-semibold text-gray-600 table-header-sticky">Cliente</th>
+                            <th class="p-4 text-sm font-semibold text-gray-600 table-header-sticky">Descrição</th>
+                            <th class="p-4 text-sm font-semibold text-gray-600 table-header-sticky text-green-600">Compra (+)</th>
+                            <th class="p-4 text-sm font-semibold text-gray-600 table-header-sticky text-red-600">Pagamento (-)</th>
+                            <th class="p-4 text-sm font-semibold text-gray-600 table-header-sticky">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-table-body">
+                       <!-- Linhas de lançamentos serão inseridas aqui via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals (Cliente e Lançamento) -->
+    <div id="customer-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 hidden z-50 opacity-0">
+        <div class="modal-content bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 md:p-8 transform scale-95">
+            <h2 id="customer-modal-title" class="text-2xl font-bold mb-6">Novo Cliente</h2>
+            <form id="customer-form">
+                <input type="hidden" id="customer-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <input id="customer-name" type="text" placeholder="Nome Completo" class="p-3 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                    <input id="customer-cpf" type="text" placeholder="CPF" class="p-3 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <input id="customer-phone" type="text" placeholder="Telefone (WhatsApp)" class="p-3 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                    <input id="customer-dob" type="text" onfocus="(this.type='date')" onblur="(this.type='text')" placeholder="Data de Nascimento" class="p-3 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                 <div class="mb-4">
+                    <input id="customer-address" type="text" placeholder="Endereço Completo" class="p-3 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                 <div class="mb-6">
+                    <label for="customer-limit" class="block text-sm font-medium text-gray-700 mb-1">Limite de Crédito</label>
+                    <input id="customer-limit" type="number" placeholder="R$ 0,00" step="0.01" class="p-3 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-customer-modal" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="transaction-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 hidden z-50 opacity-0">
+        <div class="modal-content bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 md:p-8 transform scale-95">
+            <h2 id="transaction-modal-title" class="text-2xl font-bold mb-6">Novo Lançamento</h2>
+            <form id="transaction-form">
+                <input type="hidden" id="transaction-id">
+                <div class="mb-4">
+                    <label for="transaction-date" class="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                    <input id="transaction-date" type="date" class="p-3 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                </div>
+                <div class="mb-4">
+                    <label for="transaction-customer" class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+                    <select id="transaction-customer" class="p-3 border border-gray-300 rounded-lg w-full bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                    </select>
+                </div>
+                 <div class="mb-4">
+                    <label for="transaction-description" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                    <input id="transaction-description" type="text" placeholder="Ex: 2 Camisetas, 1 Calça ou Pagamento" class="p-3 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                     <div>
+                        <label for="transaction-purchase" class="block text-sm font-medium text-gray-700 mb-1">Valor da Compra (+)</label>
+                        <input id="transaction-purchase" type="number" placeholder="R$ 0,00" step="0.01" class="p-3 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-green-500 focus:outline-none">
+                    </div>
+                     <div>
+                        <label for="transaction-payment" class="block text-sm font-medium text-gray-700 mb-1">Valor Pago (-)</label>
+                        <input id="transaction-payment" type="number" placeholder="R$ 0,00" step="0.01" class="p-3 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-red-500 focus:outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-transaction-modal" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Alerta Customizado -->
+    <div id="custom-alert" class="custom-alert fixed top-5 right-5 bg-red-500 text-white py-3 px-5 rounded-lg shadow-lg flex items-center transform translate-x-full opacity-0 z-50">
+        <i class="fas fa-exclamation-circle mr-3"></i>
+        <span id="custom-alert-message"></span>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_URL = 'http://127.0.0.1:8000'; // URL do seu backend Python
+
+            let state = {
+                customers: [],
+                transactions: [],
+            };
+
+            // --- Seletores de Elementos DOM ---
+            const customerModal = document.getElementById('customer-modal');
+            const transactionModal = document.getElementById('transaction-modal');
+            const customerForm = document.getElementById('customer-form');
+            const transactionForm = document.getElementById('transaction-form');
+
+            // --- Funções Auxiliares ---
+            const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+            const showAlert = (message, isError = true) => {
+                const alertBox = document.getElementById('custom-alert');
+                alertMessage = document.getElementById('custom-alert-message');
+                alertMessage.textContent = message;
+                alertBox.className = `custom-alert fixed top-5 right-5 text-white py-3 px-5 rounded-lg shadow-lg flex items-center transform translate-x-full opacity-0 z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+                alertBox.classList.remove('translate-x-full', 'opacity-0');
+                setTimeout(() => alertBox.classList.add('translate-x-full', 'opacity-0'), 4000);
+            };
+
+            const openModal = (modal) => {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    modal.querySelector('.modal-content').classList.remove('scale-95');
+                }, 10);
+            };
+
+            const closeModal = (modal) => {
+                modal.classList.add('opacity-0');
+                modal.querySelector('.modal-content').classList.add('scale-95');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            };
+
+            // --- Funções de API (Fetch) ---
+            async function fetchData() {
+                try {
+                    const response = await fetch(`${API_URL}/api/data`);
+                    if (!response.ok) throw new Error('Falha ao buscar dados do servidor.');
+                    const data = await response.json();
+                    state.customers = data.customers;
+                    state.transactions = data.transactions;
+                    render();
+                } catch (error) {
+                    console.error("Erro:", error);
+                    showAlert("Não foi possível conectar ao servidor. Verifique se o backend Python está rodando.");
+                }
+            }
+
+            async function postData(endpoint, data) {
+                try {
+                    const response = await fetch(`${API_URL}${endpoint}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data),
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Ocorreu um erro.');
+                    }
+                    await fetchData(); // Re-sincroniza o estado
+                    return await response.json();
+                } catch (error) {
+                    console.error("Erro ao postar dados:", error);
+                    showAlert(error.message);
+                    return null;
+                }
+            }
+            
+            async function deleteData(endpoint) {
+                try {
+                    const response = await fetch(`${API_URL}${endpoint}`, { method: 'DELETE' });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Ocorreu um erro ao deletar.');
+                    }
+                    await fetchData(); // Re-sincroniza o estado
+                } catch (error) {
+                     console.error("Erro ao deletar:", error);
+                     showAlert(error.message);
+                }
+            }
+
+            // --- Lógica de Renderização ---
+            const render = () => {
+                renderCustomers();
+                renderTransactions();
+                updateCustomerDropdown();
+                updateMetrics();
+            };
+
+            const calculateBalances = () => {
+                const balances = {};
+                state.customers.forEach(c => balances[c.id] = 0);
+                state.transactions.forEach(t => {
+                    if (balances[t.customerId] !== undefined) {
+                        balances[t.customerId] += (t.purchase || 0) - (t.payment || 0);
+                    }
+                });
+                return balances;
+            };
+
+            const renderCustomers = () => {
+                const tableBody = document.getElementById('customers-table-body');
+                tableBody.innerHTML = '';
+                const balances = calculateBalances();
+                state.customers.sort((a, b) => a.name.localeCompare(b.name)).forEach(customer => {
+                    const balance = balances[customer.id] || 0;
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-200 hover:bg-gray-50';
+                    row.innerHTML = `
+                        <td class="p-4">${customer.name}</td>
+                        <td class="p-4 text-gray-600">${customer.phone}</td>
+                        <td class="p-4 text-gray-600">${formatCurrency(customer.limit)}</td>
+                        <td class="p-4 font-semibold ${balance > 0 ? 'text-red-600' : 'text-green-600'}">${formatCurrency(balance)}</td>
+                        <td class="p-4">
+                            <button class="delete-customer-btn text-red-500 hover:text-red-700" data-id="${customer.id}" title="Excluir Cliente"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            };
+
+            const renderTransactions = () => {
+                const tableBody = document.getElementById('transactions-table-body');
+                tableBody.innerHTML = '';
+                state.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(transaction => {
+                    const customer = state.customers.find(c => c.id === transaction.customerId);
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-200 hover:bg-gray-50';
+                    row.innerHTML = `
+                        <td class="p-4">${new Date(transaction.date.replace(/-/g, '/')).toLocaleDateString('pt-BR')}</td>
+                        <td class="p-4 text-gray-600">${customer ? customer.name : 'Cliente não encontrado'}</td>
+                        <td class="p-4">${transaction.description}</td>
+                        <td class="p-4 text-green-600 font-medium">${transaction.purchase > 0 ? formatCurrency(transaction.purchase) : '-'}</td>
+                        <td class="p-4 text-red-600 font-medium">${transaction.payment > 0 ? formatCurrency(transaction.payment) : '-'}</td>
+                        <td class="p-4">
+                            <button class="delete-transaction-btn text-red-500 hover:text-red-700" data-id="${transaction.id}" title="Excluir Lançamento"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            };
+
+            const updateCustomerDropdown = () => {
+                const select = document.getElementById('transaction-customer');
+                const currentVal = select.value;
+                select.innerHTML = '<option value="" disabled selected>Selecione um cliente</option>';
+                state.customers.sort((a,b) => a.name.localeCompare(b.name)).forEach(customer => {
+                    select.innerHTML += `<option value="${customer.id}">${customer.name}</option>`;
+                });
+                select.value = currentVal;
+            };
+    
+            const updateMetrics = () => {
+                document.getElementById('total-customers').textContent = state.customers.length;
+                const totalDue = Object.values(calculateBalances()).reduce((sum, balance) => sum + (balance > 0 ? balance : 0), 0);
+                document.getElementById('total-due').textContent = formatCurrency(totalDue);
+            };
+
+            // --- Event Listeners ---
+            document.getElementById('add-customer-btn').addEventListener('click', () => {
+                customerForm.reset();
+                document.getElementById('customer-modal-title').textContent = 'Novo Cliente';
+                openModal(customerModal);
+            });
+
+            customerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const customerData = {
+                    name: document.getElementById('customer-name').value,
+                    cpf: document.getElementById('customer-cpf').value,
+                    phone: document.getElementById('customer-phone').value,
+                    dob: document.getElementById('customer-dob').value,
+                    address: document.getElementById('customer-address').value,
+                    limit: parseFloat(document.getElementById('customer-limit').value) || 0,
+                };
+                const result = await postData('/api/customers', customerData);
+                if (result) closeModal(customerModal);
+            });
+
+            document.getElementById('customers-table-body').addEventListener('click', async (e) => {
+                const deleteBtn = e.target.closest('.delete-customer-btn');
+                if (deleteBtn) {
+                    const id = deleteBtn.dataset.id;
+                    const customerName = state.customers.find(c => c.id === id)?.name || "este cliente";
+                    if (confirm(`Tem certeza que deseja apagar ${customerName}? Todos os seus lançamentos também serão apagados.`)) {
+                       await deleteData(`/api/customers/${id}`);
+                    }
+                }
+            });
+
+            document.getElementById('add-transaction-btn').addEventListener('click', () => {
+                transactionForm.reset();
+                document.getElementById('transaction-date').valueAsDate = new Date();
+                document.getElementById('transaction-modal-title').textContent = 'Novo Lançamento';
+                openModal(transactionModal);
+            });
+
+            transactionForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const transactionData = {
+                    customerId: document.getElementById('transaction-customer').value,
+                    date: document.getElementById('transaction-date').value,
+                    description: document.getElementById('transaction-description').value,
+                    purchase: parseFloat(document.getElementById('transaction-purchase').value) || 0,
+                    payment: parseFloat(document.getElementById('transaction-payment').value) || 0,
+                };
+                const result = await postData('/api/transactions', transactionData);
+                if (result) closeModal(transactionModal);
+            });
+
+            document.getElementById('transactions-table-body').addEventListener('click', async (e) => {
+                const deleteBtn = e.target.closest('.delete-transaction-btn');
+                if (deleteBtn) {
+                    const id = deleteBtn.dataset.id;
+                    if (confirm('Tem certeza que deseja apagar este lançamento?')) {
+                        await deleteData(`/api/transactions/${id}`);
+                    }
+                }
+            });
+            
+            // --- Listeners de UI (Modals, Tabs) ---
+            document.getElementById('cancel-customer-modal').addEventListener('click', () => closeModal(customerModal));
+            document.getElementById('cancel-transaction-modal').addEventListener('click', () => closeModal(transactionModal));
+            
+            const customersTab = document.getElementById('show-customers-tab');
+            const transactionsTab = document.getElementById('show-transactions-tab');
+            const customersSection = document.getElementById('customers-section');
+            const transactionsSection = document.getElementById('transactions-section');
+
+            customersTab.addEventListener('click', () => {
+                customersSection.classList.remove('hidden');
+                transactionsSection.classList.add('hidden');
+                customersTab.className = 'px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold focus:outline-none';
+                transactionsTab.className = 'px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold focus:outline-none';
+            });
+            transactionsTab.addEventListener('click', () => {
+                transactionsSection.classList.remove('hidden');
+                customersSection.classList.add('hidden');
+                transactionsTab.className = 'px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold focus:outline-none';
+                customersTab.className = 'px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold focus:outline-none';
+            });
+
+            // --- Inicialização ---
+            fetchData();
+        });
+    </script>
+</body>
+</html>
