@@ -1,4 +1,97 @@
 {
-    "customers": [],
-    "transactions": []
+    "customers": [
+        {
+            "id": "fc3e6fdc-7fd5-4bd0-adc9-448f1152dcf0",
+            "name": "sdfds",
+            "cpf": "dfd",
+            "phone": "dfd",
+            "dob": "",
+            "address": "dfsdf",
+            "limit": 400.0
+        },
+        {
+            "id": "6f047bc8-4885-4bba-835b-4fc40f567229",
+            "name": "maria",
+            "cpf": "123456",
+            "phone": "12354",
+            "dob": "",
+            "address": "R ajgh",
+            "limit": 300.0
+        },
+        {
+            "id": "992f580b-5944-411e-bce2-70c6c44fdf39",
+            "name": "joao",
+            "cpf": "23156",
+            "phone": "56456",
+            "dob": "0006-12-31",
+            "address": "sdfsdf",
+            "limit": 1000.0
+        }
+    ],
+    "transactions": [
+        {
+            "id": "fac18865-b8fa-4666-8b8f-d1c5ff283bc5",
+            "customerId": "fc3e6fdc-7fd5-4bd0-adc9-448f1152dcf0",
+            "date": "2025-06-08",
+            "description": "aasd",
+            "purchase": 300.0,
+            "payment": 0.0
+        },
+        {
+            "id": "aed067bf-c844-4591-b682-d5cdd0893ab3",
+            "customerId": "fc3e6fdc-7fd5-4bd0-adc9-448f1152dcf0",
+            "date": "2025-06-09",
+            "description": "sadawsd",
+            "purchase": 100.0,
+            "payment": 0.0
+        },
+        {
+            "id": "d1a03b68-71f3-4b21-a97e-cd282bffc85b",
+            "customerId": "fc3e6fdc-7fd5-4bd0-adc9-448f1152dcf0",
+            "date": "2025-06-03",
+            "description": "asdwd",
+            "purchase": 0.0,
+            "payment": 400.0
+        },
+        {
+            "id": "75d26957-25ed-4dca-9c53-407b3716eb90",
+            "customerId": "fc3e6fdc-7fd5-4bd0-adc9-448f1152dcf0",
+            "date": "2025-06-08",
+            "description": "ghjgh",
+            "purchase": 100.0,
+            "payment": 0.0
+        },
+        {
+            "id": "bd617476-e8a0-4308-b42b-f9f5d06a5ef6",
+            "customerId": "fc3e6fdc-7fd5-4bd0-adc9-448f1152dcf0",
+            "date": "2025-06-08",
+            "description": "jhbhj",
+            "purchase": 0.0,
+            "payment": 50.0
+        },
+        {
+            "id": "be4c033b-3723-4666-bc1d-af1087e91a45",
+            "customerId": "992f580b-5944-411e-bce2-70c6c44fdf39",
+            "date": "2025-06-08",
+            "description": "camiseta xadrez",
+            "purchase": 120.0,
+            "payment": 0.0
+        },
+        {
+            "id": "1dd1cae5-996b-4a52-9664-975988c4284e",
+            "customerId": "992f580b-5944-411e-bce2-70c6c44fdf39",
+            "date": "2025-06-08",
+            "description": "calça jeans",
+            "purchase": 150.0,
+            "payment": 0.0
+        },
+        {
+            "id": "bb9eb2f8-8ac0-43a6-b607-c999957220cd",
+            "customerId": "992f580b-5944-411e-bce2-70c6c44fdf39",
+            "date": "2025-06-09",
+            "description": "pagou camiseta xadrez",
+            "purchase": 0.0,
+            "payment": 50.0
+        }
+    ]
 }

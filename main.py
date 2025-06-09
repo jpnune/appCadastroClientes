@@ -15,14 +15,13 @@ from pydantic import BaseModel, Field
 app = FastAPI(
     title="API de Controle de Fiado",
     description="Backend para gerenciar clientes e transações de uma loja.",
-    version="1.0.0"
+    version="1.1.0"
 )
 
 # --- CORS (Cross-Origin Resource Sharing) ---
-# Permite que o frontend (rodando em uma origem diferente) se comunique com este backend.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, restrinja para o domínio do seu frontend
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,15 +43,22 @@ def save_db(data: Dict[str, List[Dict]]):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 # --- Modelos de Dados (Pydantic) ---
-# Define a estrutura dos dados para validação automática.
 class Customer(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     cpf: Optional[str] = None
     phone: str
-    dob: Optional[str] = None # Data de Nascimento
+    dob: Optional[str] = None
     address: Optional[str] = None
     limit: float = 0.0
+
+class CustomerUpdate(BaseModel):
+    name: Optional[str] = None
+    cpf: Optional[str] = None
+    phone: Optional[str] = None
+    dob: Optional[str] = None
+    address: Optional[str] = None
+    limit: Optional[float] = None
 
 class Transaction(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -87,32 +93,45 @@ def get_all_data():
 def create_customer(customer: Customer):
     """Cria um novo cliente e o salva no banco de dados."""
     db = load_db()
-    # Garante que o ID é único, mesmo que seja fornecido
     customer.id = str(uuid.uuid4())
     db["customers"].append(customer.dict())
     save_db(db)
     return customer
 
-@app.post("/api/transactions", response_model=Transaction, status_code=201, summary="Adicionar um novo lançamento")
-def create_transaction(transaction: Transaction):
-    """Cria um novo lançamento, verificando o limite de crédito do cliente antes de salvar."""
+@app.put("/api/customers/{customer_id}", response_model=Customer, summary="Atualizar um cliente")
+def update_customer(customer_id: str, customer_data: CustomerUpdate):
+    """Atualiza os dados de um cliente existente."""
     db = load_db()
     
-    # Validação: Cliente existe?
+    customer_index = -1
+    for i, c in enumerate(db["customers"]):
+        if c["id"] == customer_id:
+            customer_index = i
+            break
+
+    if customer_index == -1:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+    
+    # Atualiza os dados do cliente com os novos dados
+    update_data = customer_data.dict(exclude_unset=True)
+    db["customers"][customer_index].update(update_data)
+    
+    save_db(db)
+    return db["customers"][customer_index]
+
+@app.post("/api/transactions", response_model=Transaction, status_code=201, summary="Adicionar um novo lançamento")
+def create_transaction(transaction: Transaction):
+    """Cria um novo lançamento, verificando o limite de crédito."""
+    db = load_db()
     customer = next((c for c in db["customers"] if c["id"] == transaction.customerId), None)
     if not customer:
         raise HTTPException(status_code=404, detail="Cliente não encontrado.")
 
-    # Validação: Limite de crédito
     if transaction.purchase > 0:
         current_balance = calculate_balance(transaction.customerId, db["transactions"])
         if (current_balance + transaction.purchase) > customer["limit"]:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Limite de crédito excedido para {customer['name']}! Limite: R${customer['limit']:.2f}, Saldo Atual: R${current_balance:.2f}"
-            )
+            raise HTTPException(status_code=400, detail=f"Limite de crédito excedido para {customer['name']}!")
     
-    # Garante que o ID é único
     transaction.id = str(uuid.uuid4())
     db["transactions"].append(transaction.dict())
     save_db(db)
@@ -122,24 +141,19 @@ def create_transaction(transaction: Transaction):
 def delete_customer(customer_id: str):
     """Exclui um cliente e todos os seus lançamentos associados."""
     db = load_db()
-    
-    # Verifica se o cliente existe
     if not any(c for c in db["customers"] if c["id"] == customer_id):
         raise HTTPException(status_code=404, detail="Cliente não encontrado.")
     
-    # Filtra e mantém apenas os outros clientes
     db["customers"] = [c for c in db["customers"] if c["id"] != customer_id]
-    # Filtra e mantém apenas as transações de outros clientes
     db["transactions"] = [t for t in db["transactions"] if t["customerId"] != customer_id]
     
     save_db(db)
-    return {} # Retorno vazio para status 204
+    return {}
 
 @app.delete("/api/transactions/{transaction_id}", status_code=204, summary="Excluir um lançamento")
 def delete_transaction(transaction_id: str):
     """Exclui um lançamento específico."""
     db = load_db()
-    
     initial_len = len(db["transactions"])
     db["transactions"] = [t for t in db["transactions"] if t["id"] != transaction_id]
     
