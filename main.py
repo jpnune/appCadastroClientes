@@ -30,7 +30,7 @@ app.add_middleware(
 
 # --- Conexão com os Serviços Vercel ---
 kv_client = KV()
-DB_KEY = "fiado_app_data_v2" # Usamos uma nova chave para evitar conflitos com a estrutura antiga
+DB_KEY = "fiado_app_data_v2"
 
 # --- Modelos de Dados (Pydantic) ---
 class Customer(BaseModel):
@@ -41,7 +41,7 @@ class Customer(BaseModel):
     dob: Optional[str] = None
     address: Optional[str] = None
     limit: float = 0.0
-    pictureUrl: Optional[str] = None # Novo campo para a foto
+    pictureUrl: Optional[str] = None
 
 class CustomerUpdate(BaseModel):
     name: Optional[str] = None
@@ -83,11 +83,7 @@ def get_all_data():
 @app.post("/api/customers", response_model=Customer, status_code=201, summary="Adicionar novo cliente")
 def create_customer(customer: Customer):
     data = kv_client.get(DB_KEY) or {"customers": [], "transactions": []}
-    
-    # Garante que o ID é único e o pictureUrl é nulo no início
-    customer.id = str(uuid.uuid4())
-    customer.pictureUrl = None
-    
+    customer.pictureUrl = None # Garante que a foto é nula ao criar
     data["customers"].append(customer.dict())
     kv_client.set(DB_KEY, data)
     return customer
@@ -95,7 +91,6 @@ def create_customer(customer: Customer):
 @app.put("/api/customers/{customer_id}", response_model=Customer, summary="Atualizar um cliente")
 def update_customer(customer_id: str, customer_data: CustomerUpdate):
     data = kv_client.get(DB_KEY) or {"customers": [], "transactions": []}
-    
     customer_index = next((i for i, c in enumerate(data["customers"]) if c["id"] == customer_id), -1)
 
     if customer_index == -1:
@@ -109,28 +104,20 @@ def update_customer(customer_id: str, customer_data: CustomerUpdate):
 
 @app.post("/api/customers/{customer_id}/upload-picture", response_model=Customer, summary="Upload da foto do cliente")
 async def upload_customer_picture(customer_id: str, file: UploadFile = File(...)):
-    """Recebe um ficheiro, faz o upload para o Vercel Blob e atualiza o cliente com a URL da imagem."""
     data = kv_client.get(DB_KEY) or {"customers": [], "transactions": []}
-    
     customer_index = next((i for i, c in enumerate(data["customers"]) if c["id"] == customer_id), -1)
 
     if customer_index == -1:
         raise HTTPException(status_code=404, detail="Cliente não encontrado para associar a foto.")
 
     try:
-        # Faz o upload do ficheiro para o Vercel Blob
         blob_result = vercel_blob.put(f"customers/{customer_id}/{file.filename}", file.file.read(), {'access': 'public'})
-        
-        # Atualiza a URL da foto no registo do cliente
         picture_url = blob_result['url']
         data["customers"][customer_index]['pictureUrl'] = picture_url
         kv_client.set(DB_KEY, data)
-        
         return data["customers"][customer_index]
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Falha no upload do ficheiro: {str(e)}")
-
 
 @app.post("/api/transactions", response_model=Transaction, status_code=201, summary="Adicionar novo lançamento")
 def create_transaction(transaction: Transaction):
@@ -148,7 +135,6 @@ def create_transaction(transaction: Transaction):
         if (current_balance + transaction.purchase) > customer.limit:
             raise HTTPException(status_code=400, detail=f"Limite de crédito excedido para {customer.name}!")
     
-    transaction.id = str(uuid.uuid4())
     data["transactions"].append(transaction.dict())
     kv_client.set(DB_KEY, data)
     return transaction
@@ -163,7 +149,6 @@ def delete_customer(customer_id: str):
     data["transactions"] = [t for t in data["transactions"] if t["customerId"] != customer_id]
     
     kv_client.set(DB_KEY, data)
-    # Aqui também deveríamos deletar os ficheiros do Blob, mas manteremos simples por agora.
     return {}
 
 @app.delete("/api/transactions/{transaction_id}", status_code=204, summary="Excluir um lançamento")
